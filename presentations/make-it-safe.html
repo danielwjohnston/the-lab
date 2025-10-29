@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leadership Bookclub - Make It Safe</title>
+    <style>
+        :root {
+            --color-brand-primary: #e30613;
+            --color-brand-primary-dark: #c20510;
+            --color-brand-accent: #4a90e2;
+            --color-text: #333333;
+            --color-muted: #666666;
+            --color-background: #ffffff;
+            --color-highlight: #f8f8f8;
+            --color-discussion: #f0f8ff;
+            --space-xs: clamp(0.5rem, 1vw, 0.75rem);
+            --space-sm: clamp(0.75rem, 1.5vw, 1rem);
+            --space-md: clamp(1rem, 2vw, 1.5rem);
+            --space-lg: clamp(1.5rem, 3vw, 2.5rem);
+            --space-xl: clamp(2rem, 4vw, 3rem);
+            --header-height: 60px;
+            --footer-height: 60px;
+            --nav-height: 80px;
+            --max-content-width: min(1000px, 92vw);
+            color-scheme: light;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--color-background);
+            color: var(--color-text);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            .timer-progress {
+                transition: none !important;
+            }
+        }
+
+        .skip-link {
+            position: fixed;
+            left: 1rem;
+            top: 0.75rem;
+            transform: translateY(-250%);
+            z-index: 2000;
+            background: #000;
+            color: #fff;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 700;
+            transition: transform 0.2s ease;
+        }
+
+        .skip-link:focus {
+            transform: translateY(0);
+        }
+
+        *:focus-visible {
+            outline: 3px solid #000;
+            outline-offset: 4px;
+        }
+
+        .nav-btn:focus-visible,
+        .auto-advance-toggle:focus-visible,
+        .help-toggle:focus-visible {
+            outline: 3px solid #ffffff;
+            outline-offset: 3px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        header.header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--color-background);
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid #dddddd;
+            font-size: 0.95rem;
+            color: var(--color-muted);
+            z-index: 1200;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+        }
+
+        footer.footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--color-brand-primary);
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;
+            z-index: 1200;
+            height: var(--footer-height);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .slideshow-container {
+            padding-top: calc(var(--header-height) + var(--space-xl));
+            padding-bottom: calc(var(--footer-height) + var(--nav-height) + var(--space-lg));
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .persistent-header {
+            position: fixed;
+            top: calc(var(--header-height));
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-primary-dark) 100%);
+            color: #ffffff;
+            padding: var(--space-sm) var(--space-lg);
+            text-align: center;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-100%);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .persistent-header.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .persistent-header h3 {
+            color: #ffffff;
+            font-size: clamp(0.8rem, 0.6rem + 0.5vw, 1rem);
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+
+        .persistent-header h2 {
+            color: #ffffff;
+            font-size: clamp(1.25rem, 0.5rem + 2vw, 1.75rem);
+            margin: 0.2rem 0;
+            text-transform: uppercase;
+        }
+
+        .persistent-header p {
+            color: #f0f0f0;
+            font-size: clamp(0.8rem, 0.6rem + 0.5vw, 0.95rem);
+            margin: 0.2rem 0 0 0;
+            font-style: italic;
+        }
+
+        .slide {
+            display: none;
+            padding: var(--space-lg);
+            text-align: center;
+            max-width: var(--max-content-width);
+            width: 100%;
+            margin-inline: auto;
+            background: var(--color-background);
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.04);
+        }
+
+        .slide[aria-hidden="false"] {
+            display: block;
+        }
+
+        .slide.with-header {
+            margin-top: calc(var(--space-xl) + var(--space-md));
+        }
+
+        .slide .slide-content {
+            margin-top: var(--space-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .discussion-slide.with-header .slide-content,
+        .dans-digest-slide.with-header .slide-content {
+            padding-top: var(--space-md);
+        }
+
+        .title-slide {
+            background: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-brand-primary-dark) 100%);
+            color: #ffffff;
+        }
+
+        .title-slide .slide-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: min(60vh, 700px);
+            margin: 0;
+        }
+
+        .title-slide h1,
+        .title-slide h2,
+        .title-slide .subtitle {
+            color: #ffffff;
+        }
+
+        .brand-logo {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            padding: var(--space-sm) var(--space-md);
+            margin-bottom: var(--space-lg);
+            font-weight: 700;
+            font-size: clamp(1rem, 0.75rem + 1vw, 1.4rem);
+            border-radius: 999px;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 1.4rem + 4vw, 3.5rem);
+            margin-bottom: var(--space-md);
+            color: var(--color-brand-primary);
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: clamp(1.9rem, 1.2rem + 2.4vw, 2.8rem);
+            margin-bottom: var(--space-lg);
+            color: var(--color-brand-primary);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        h3 {
+            font-size: clamp(1.3rem, 1rem + 1.5vw, 1.8rem);
+            margin-bottom: var(--space-md);
+            color: var(--color-text);
+            font-weight: 700;
+        }
+
+        p, li {
+            font-size: clamp(1rem, 0.9rem + 0.6vw, 1.2rem);
+            line-height: 1.7;
+            margin-bottom: var(--space-sm);
+            color: var(--color-text);
+        }
+
+        ul {
+            text-align: left;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        li {
+            margin-bottom: var(--space-sm);
+            padding-left: var(--space-sm);
+        }
+
+        .subtitle {
+            font-size: clamp(1.1rem, 0.9rem + 0.5vw, 1.3rem);
+            color: var(--color-muted);
+            margin-bottom: var(--space-sm);
+            font-style: italic;
+        }
+
+        .highlight {
+            background: var(--color-highlight);
+            padding: var(--space-lg);
+            border-radius: 0.5rem;
+            margin: var(--space-lg) 0;
+            border-left: 5px solid var(--color-brand-primary);
+            text-align: left;
+        }
+
+        .story-box {
+            background: var(--color-highlight);
+            padding: var(--space-lg);
+            border-radius: 0.5rem;
+            margin: var(--space-lg) 0;
+            border: 2px solid #dddddd;
+            text-align: left;
+        }
+
+        .story-box h3 {
+            color: var(--color-brand-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: calc(var(--footer-height));
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: var(--space-sm);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-lg);
+            z-index: 1100;
+        }
+
+        .navigation-inner {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid var(--color-brand-primary);
+            border-radius: 999px;
+            padding: var(--space-sm) var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-btn,
+        .auto-advance-toggle,
+        .help-toggle {
+            background: var(--color-brand-primary);
+            border: none;
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.2s ease, background 0.2s ease;
+            font-weight: 700;
+            min-width: 120px;
+        }
+
+        .nav-btn:hover,
+        .auto-advance-toggle:hover,
+        .help-toggle:hover {
+            background: var(--color-brand-primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .auto-advance-toggle.active {
+            background: var(--color-brand-primary-dark);
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: calc(var(--header-height) + var(--space-sm));
+            right: var(--space-lg);
+            background: #333333;
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.95rem;
+            z-index: 1200;
+        }
+
+        .timer-container {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            padding: var(--space-sm);
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border: 2px solid var(--color-brand-primary);
+        }
+
+        .timer-container.active {
+            display: flex;
+        }
+
+        .circular-timer {
+            width: 60px;
+            height: 60px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .circular-timer svg {
+            transform: rotate(-90deg);
+            display: block;
+        }
+
+        .timer-background {
+            fill: none;
+            stroke: #dddddd;
+            stroke-width: 4;
+        }
+
+        .timer-progress {
+            fill: none;
+            stroke: var(--color-brand-primary);
+            stroke-width: 4;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        .auto-advance-toggle {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .discussion-slide {
+            background: var(--color-discussion);
+            border: 3px solid var(--color-brand-accent);
+        }
+
+        .discussion-slide h2 {
+            color: var(--color-brand-accent);
+        }
+
+        .question-text {
+            font-size: clamp(1.1rem, 1rem + 0.8vw, 1.4rem);
+            line-height: 1.8;
+            color: var(--color-brand-accent);
+            font-weight: 700;
+            margin: var(--space-lg) 0;
+            padding: var(--space-lg);
+            background: #ffffff;
+            border-radius: 0.75rem;
+            border-left: 5px solid var(--color-brand-accent);
+            text-align: left;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: var(--space-md);
+            margin-top: var(--space-lg);
+        }
+
+        .column-box {
+            background: var(--color-highlight);
+            padding: var(--space-md);
+            border-radius: 0.5rem;
+            border: 2px solid var(--color-brand-primary);
+            text-align: left;
+        }
+
+        .column-box h4 {
+            color: var(--color-brand-primary);
+            margin-bottom: var(--space-sm);
+            text-align: center;
+            font-size: clamp(1.1rem, 0.9rem + 0.7vw, 1.3rem);
+        }
+
+        .number-box {
+            background: var(--color-brand-primary);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            display: inline-block;
+            font-size: clamp(1.2rem, 1rem + 0.8vw, 1.5rem);
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .step-box {
+            background: #ffffff;
+            border: 3px solid var(--color-brand-primary);
+            padding: var(--space-md);
+            border-radius: 0.75rem;
+            margin: var(--space-sm) 0;
+            text-align: left;
+        }
+
+        .step-box h4 {
+            color: var(--color-brand-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .bridge-box {
+            background: linear-gradient(135deg, var(--color-brand-primary) 10%, var(--color-brand-primary-dark) 100%);
+            color: #ffffff;
+            padding: var(--space-lg);
+            border-radius: 0.75rem;
+            margin: var(--space-lg) 0;
+            text-align: left;
+        }
+
+        .bridge-box h3,
+        .bridge-box p,
+        .bridge-box li,
+        .bridge-box ul {
+            color: #ffffff;
+        }
+
+        .shortcut-help {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: grid;
+            place-items: center;
+            z-index: 2000;
+        }
+
+        .shortcut-help[hidden] {
+            display: none;
+        }
+
+        .shortcut-panel {
+            background: #ffffff;
+            color: var(--color-text);
+            padding: var(--space-xl);
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            max-width: 480px;
+            width: 90vw;
+        }
+
+        .shortcut-panel h2 {
+            text-transform: none;
+            margin-bottom: var(--space-md);
+        }
+
+        .shortcut-panel ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .shortcut-panel li {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--space-sm);
+            font-size: 1rem;
+        }
+
+        .shortcut-panel code {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--color-highlight);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.4rem;
+        }
+
+        @media (max-width: 768px) {
+            .navigation {
+                bottom: calc(var(--footer-height));
+            }
+
+            .navigation-inner {
+                border-radius: 1rem;
+            }
+
+            h2 {
+                text-transform: none;
+            }
+        }
+
+        @media (max-height: 720px) {
+            .navigation {
+                position: static;
+                margin-top: var(--space-lg);
+                padding-bottom: var(--space-lg);
+            }
+
+            .slideshow-container {
+                padding-bottom: calc(var(--footer-height) + var(--space-xl));
+            }
+        }
+    </style>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="header" role="banner">
+        CrucialLearning.com | 800.449.5989
+    </header>
+
+    <footer class="footer" role="contentinfo">
+        ©2024 Leadership Development. All rights reserved.
+    </footer>
+
+    <main id="main-content" class="slideshow-container" aria-label="Slideshow presentation">
+        <div class="slide-counter" aria-live="polite" aria-atomic="true">
+            Slide <span id="slideNumber">1</span> of <span id="totalSlides">0</span>
+        </div>
+
+        <div id="timerAria" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+        <div class="persistent-header" id="chapterHeader">
+            <h3>Leadership Bookclub</h3>
+            <h2>MAKE IT SAFE</h2>
+            <p>Chapter 7 • How to make it safe to talk about almost anything</p>
+        </div>
+
+        <div class="slide title-slide" data-duration="30" data-type="title" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-1-heading">
+            <div class="brand-logo">Leadership Bookclub</div>
+            <h1 id="slide-1-heading">DISCUSSION QUESTIONS</h1>
+            <p class="subtitle">Chapter 7</p>
+            <h2>Make It Safe</h2>
+            <p class="subtitle">How to make it safe to talk about almost anything</p>
+        </div>
+
+        <div class="slide" data-duration="45" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-2-heading">
+            <div class="slide-content">
+                <h2 id="slide-2-heading">Core Message</h2>
+                <div class="highlight">
+                    <h3>When safety is at risk, step out of the content and rebuild safety</h3>
+                    <p>People never become defensive about <em>what</em> you're saying—they become defensive because of <em>why</em> they think you're saying it.</p>
+                    <p style="margin-top: var(--space-sm);"><strong>Safety is about intent, not content.</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="90" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-3-heading">
+            <div class="slide-content">
+                <h2 id="slide-3-heading">Step Out, Make It Safe, Step Back In</h2>
+                <div class="step-box">
+                    <h4>1. Notice safety is at risk</h4>
+                    <p>Watch for silence or violence</p>
+                </div>
+                <div class="step-box">
+                    <h4>2. Step out of the content</h4>
+                    <p>Stop talking about the topic</p>
+                </div>
+                <div class="step-box">
+                    <h4>3. Rebuild safety</h4>
+                    <p>Use the skills in this chapter</p>
+                </div>
+                <div class="step-box">
+                    <h4>4. Step back in</h4>
+                    <p>Return to the conversation</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-4-heading">
+            <div class="slide-content">
+                <h2 id="slide-4-heading">Two Conditions of Safety</h2>
+                <p>For people to feel safe, they need to know two things about your intent:</p>
+                <div class="two-column">
+                    <div class="column-box">
+                        <h4>Mutual Purpose</h4>
+                        <p><strong>The Entrance Condition</strong></p>
+                        <p>Others perceive you're working toward a common outcome</p>
+                        <p><em>You care about their goals, interests, and values</em></p>
+                    </div>
+                    <div class="column-box">
+                        <h4>Mutual Respect</h4>
+                        <p><strong>The Continuance Condition</strong></p>
+                        <p>Others perceive that you respect them</p>
+                        <p><em>Respect is like air—when it's gone, it's all people think about</em></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-5-heading">
+            <div class="slide-content">
+                <h2 id="slide-5-heading">Mutual Purpose</h2>
+                <h3>The entrance condition of dialogue</h3>
+                <ul>
+                    <li>Others believe you're working toward a <strong>common outcome</strong></li>
+                    <li>You care about their goals, interests, and values (and vice versa)</li>
+                    <li>Find a shared goal → you have a reason and climate for talking</li>
+                </ul>
+                <div class="highlight">
+                    <h3>A Surefire Mutual Purpose</h3>
+                    <p>Human beings have an innate need to be heard and understood. So a great starting mutual purpose is: <strong>seek mutual understanding</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-6-heading">
+            <div class="slide-content">
+                <h2 id="slide-6-heading">Mutual Respect</h2>
+                <h3>The continuance condition of dialogue</h3>
+                <div class="highlight">
+                    <p><strong>Respect is like air.</strong> As long as it's present, nobody thinks about it. But if you take it away, it's all people can think about.</p>
+                </div>
+                <ul>
+                    <li>When people perceive disrespect → dialogue stops</li>
+                    <li>The conversation becomes about <strong>defending dignity</strong></li>
+                    <li>Watch for signs people are defending dignity (heightened emotions)</li>
+                </ul>
+                <div class="story-box">
+                    <h3>Can you respect people you don't respect?</h3>
+                    <p>You don't have to respect every element of their character. Find a way to honor their basic humanity. Look for ways you're <em>similar</em> rather than dwelling on differences.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide discussion-slide" data-duration="300" data-type="discussion" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-7-heading">
+            <div class="slide-content">
+                <h2 id="slide-7-heading">Discussion Question</h2>
+                <div class="question-text">
+                    Think of a time when you felt unsafe in a conversation. Which condition was violated—mutual purpose or mutual respect? How did you know?
+                </div>
+                <p><em>Take 4-5 minutes to discuss with the group</em></p>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="90" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-8-heading">
+            <div class="slide-content">
+                <h2 id="slide-8-heading">Four Skills to Build Safety</h2>
+                <h3>Use these to build safety up front or rebuild when it's lost</h3>
+                <div class="two-column">
+                    <div class="step-box">
+                        <div class="number-box">1</div>
+                        <h4>Share Your Good Intent</h4>
+                        <p>State what you want for everyone</p>
+                    </div>
+                    <div class="step-box">
+                        <div class="number-box">2</div>
+                        <h4>Apologize When Appropriate</h4>
+                        <p>Express sorrow for your role in causing pain</p>
+                    </div>
+                </div>
+                <div class="two-column">
+                    <div class="step-box">
+                        <div class="number-box">3</div>
+                        <h4>Contrast to Fix Misunderstandings</h4>
+                        <p>Clarify what you don't and do intend</p>
+                    </div>
+                    <div class="step-box">
+                        <div class="number-box">4</div>
+                        <h4>Create a Mutual Purpose</h4>
+                        <p>Use CRIB when at cross purposes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-9-heading">
+            <div class="slide-content">
+                <h2 id="slide-9-heading">Skill 1: Share Your Good Intent</h2>
+                <h3>If people aren't sure of your intent, they'll assume the worst</h3>
+                <div class="highlight">
+                    <p><strong>It's not enough to have good intentions. The other person must know that's the case.</strong></p>
+                </div>
+                <div class="story-box">
+                    <h3>Example: Oba and Mari</h3>
+                    <p><strong>Before:</strong> "Mari, I was wondering if we could talk about what happened Friday night..."</p>
+                    <p style="margin-top: var(--space-sm);"><strong>After:</strong> "Mari, I love you, and I want to make sure we're talking about things that impact our relationship. Our relationship is the most important thing in the world to me. Could we talk?"</p>
+                </div>
+                <p style="margin-top: var(--space-md);">Starting with your good intent lays the foundation for safety</p>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-10-heading">
+            <div class="slide-content">
+                <h2 id="slide-10-heading">Skill 2: Apologize When Appropriate</h2>
+                <h3>When you've clearly violated respect</h3>
+                <div class="highlight">
+                    <p>An apology is a statement that sincerely expresses your sorrow for your role in causing—or at least not preventing—pain or difficulty to others.</p>
+                </div>
+                <ul>
+                    <li>An apology isn't really an apology unless you experience a <strong>change in heart</strong></li>
+                    <li>You have to give up saving face, being right, or winning</li>
+                    <li>You sacrifice a bit of ego to focus on what you really want</li>
+                </ul>
+                <div class="story-box">
+                    <h3>Example</h3>
+                    <p><em>"I'm sorry I didn't give you a call when I learned we wouldn't be coming by. You worked all night, and I didn't even explain what happened. I apologize."</em></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="150" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-11-heading">
+            <div class="slide-content">
+                <h2 id="slide-11-heading">Skill 3: Contrast to Fix Misunderstandings</h2>
+                <h3>When respect/purpose is violated by misinterpretation</h3>
+                <p>Contrasting is a <strong>don't/do</strong> statement:</p>
+                <div class="two-column">
+                    <div class="column-box">
+                        <h4>Don't Part</h4>
+                        <p>Address concerns that you don't respect them or have malicious purpose</p>
+                        <p><em>"I don't want you to think..."</em></p>
+                    </div>
+                    <div class="column-box">
+                        <h4>Do Part</h4>
+                        <p>Clarify what your real intention is</p>
+                        <p><em>"I do want..."</em></p>
+                    </div>
+                </div>
+                <div class="story-box" style="margin-top: var(--space-md);">
+                    <h3>Example</h3>
+                    <p><em>"I don't want to criticize you or get on your case. I know you're carrying a huge load. I <strong>do</strong> want us to be able to talk about our concerns so we can build our relationship."</em></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-12-heading">
+            <div class="slide-content">
+                <h2 id="slide-12-heading">Use Contrasting for Prevention</h2>
+                <h3>Don't wait until safety is violated</h3>
+                <div class="story-box">
+                    <h3>Example 1: Financial Discussion</h3>
+                    <p><em>"I wanted to talk about how we're managing our finances. I don't want you to think I don't appreciate the time you've taken to keep our account balanced. I do appreciate it. I do, however, have some concerns with how we're using the online banking system."</em></p>
+                </div>
+                <div class="story-box">
+                    <h3>Example 2: Relationship Issue</h3>
+                    <p><em>"I'd like to talk about something worrying me, and I'm not sure how to handle this conversation. My fear is that I'll damage our relationship, and that's not my intent at all. My goal in bringing this up is to <strong>strengthen</strong> our relationship."</em></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="60" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-13-heading">
+            <div class="slide-content">
+                <h2 id="slide-13-heading">The Most Complex Skill</h2>
+                <div class="bridge-box">
+                    <h3>Skills 1-3 handle most safety issues</h3>
+                    <p>Share intent, apologize, and contrast work when:</p>
+                    <ul>
+                        <li>Your intent is misunderstood</li>
+                        <li>You've made a mistake</li>
+                        <li>There's a simple misunderstanding</li>
+                    </ul>
+                </div>
+                <div class="highlight">
+                    <h3>But what if you're truly at cross purposes?</h3>
+                    <p>When you genuinely want different things, you need a more sophisticated approach...</p>
+                    <p style="margin-top: var(--space-sm);"><strong>Enter Skill 4: Create a Mutual Purpose</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-14-heading">
+            <div class="slide-content">
+                <h2 id="slide-14-heading">Skill 4: Create a Mutual Purpose</h2>
+                <h3>When you're at cross purposes, use CRIB</h3>
+                <div class="story-box">
+                    <h3><strong>C</strong>ommit to seek mutual purpose</h3>
+                    <p>Make a public commitment to stay in conversation until you find something that serves everyone</p>
+                </div>
+                <div class="story-box">
+                    <h3><strong>R</strong>ecognize the purpose behind the strategy</h3>
+                    <p>Ask WHY they want what they're asking for. Separate demands from underlying purpose</p>
+                </div>
+                <div class="story-box">
+                    <h3><strong>I</strong>nvent a mutual purpose</h3>
+                    <p>If still at odds, invent a higher or longer-term purpose that's more motivating</p>
+                </div>
+                <div class="story-box">
+                    <h3><strong>B</strong>rainstorm new strategies</h3>
+                    <p>With mutual purpose clear, jointly search for solutions that serve everyone</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-15-heading">
+            <div class="slide-content">
+                <h2 id="slide-15-heading">Commit to Seek Mutual Purpose</h2>
+                <h3>Stop fighting and start with heart</h3>
+                <ul>
+                    <li>Stop using silence or violence to compel others</li>
+                    <li>Suspend belief that your choice is the only one</li>
+                    <li>Open your mind: maybe there's a third choice</li>
+                    <li>Act on faith that your partner is stuck because they feel unsafe</li>
+                </ul>
+                <div class="highlight">
+                    <h3>Say It Out Loud</h3>
+                    <p><em>"It seems like we're both trying to force our view on each other. I commit to stay in this discussion until we have a solution that satisfies both of us."</em></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="150" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-16-heading">
+            <div class="slide-content">
+                <h2 id="slide-16-heading">Recognize the Purpose Behind the Strategy</h2>
+                <h3>We confuse wants (purpose) with strategy</h3>
+                <div class="story-box">
+                    <h3>Example: Movie vs. Stay Home</h3>
+                    <p><strong>Strategies:</strong> "I want to go to a movie" vs. "I want to stay home"</p>
+                    <p style="margin-top: var(--space-sm);"><strong>Ask WHY:</strong></p>
+                    <p>"Why do you want to stay home?" → <em>"Peace and quiet"</em></p>
+                    <p>"Why do you want to go to a movie?" → <em>"Time with you, away from kids"</em></p>
+                    <p style="margin-top: var(--space-sm);"><strong>Real purposes:</strong> Peace/quiet AND time together away</p>
+                    <p><strong>New option:</strong> Drive up the canyon together—quiet AND away!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-17-heading">
+            <div class="slide-content">
+                <h2 id="slide-17-heading">Invent a Mutual Purpose</h2>
+                <h3>When purposes can't both be served</h3>
+                <p>Move to more <strong>encompassing goals</strong>—find objectives that are more meaningful or rewarding</p>
+                <div class="story-box">
+                    <h3>Example: Job Promotion Requiring Move</h3>
+                    <p><strong>Your goal:</strong> Take promotion (career advancement)</p>
+                    <p><strong>Spouse's goal:</strong> Stay put (family stability, kids' friends)</p>
+                    <p style="margin-top: var(--space-sm);"><strong>Higher purpose:</strong> The needs of our relationship and children come before career aspirations</p>
+                    <p><em>By focusing on higher and longer-term goals, you transcend short-term compromises</em></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="90" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-18-heading">
+            <div class="slide-content">
+                <h2 id="slide-18-heading">Brainstorm New Strategies</h2>
+                <h3>With mutual purpose clear, create options</h3>
+                <ul>
+                    <li>Once safety is restored, return to content</li>
+                    <li>Come up with options that serve everyone</li>
+                    <li>Suspend judgment and think outside the box</li>
+                    <li>You'll no longer spend energy on unproductive conflict</li>
+                </ul>
+                <div class="highlight">
+                    <h3>Questions to Ask</h3>
+                    <p>Can we find a local job that meets career goals? Is this the only opportunity? Is a move really necessary? Is there another community offering similar benefits?</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide discussion-slide" data-duration="600" data-type="discussion" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-19-heading">
+            <div class="slide-content">
+                <h2 id="slide-19-heading">Discussion Question</h2>
+                <div class="question-text">
+                    Which skill feels easiest and which feels hardest for you? Think of a time arguing over what to do instead of why—how could CRIB help you get unstuck in your next crucial conversation?
+                </div>
+                <p><em>Discuss ~10 minutes.</em></p>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="120" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-20-heading">
+            <div class="slide-content">
+                <h2 id="slide-20-heading">Safety in Virtual Communication</h2>
+                <h3>Same principles, different medium</h3>
+                <div class="highlight">
+                    <p>The core conditions don't change. You still need mutual purpose and mutual respect. But in written communication, it's <strong>even more essential</strong> to verbalize your intent.</p>
+                </div>
+                <div class="story-box">
+                    <h3>The "Write It Twice" Rule</h3>
+                    <p><strong>First:</strong> Write to get your content across</p>
+                    <p><strong>Second:</strong> Read slowly imagining their face. How might they feel? Rewrite with safety in mind.</p>
+                </div>
+                <div class="story-box">
+                    <h3>Be Explicit About Intent</h3>
+                    <p><em>"If you could see my face right now, you'd see the wrinkles in my worried forehead as I hope this isn't coming across as harsh or critical..."</em></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="90" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-21-heading">
+            <div class="slide-content">
+                <h2 id="slide-21-heading">Putting It All Together</h2>
+                <h3>The complete process</h3>
+                <div class="step-box">
+                    <h4>Step 1: Notice safety is at risk</h4>
+                    <p>Watch for silence or violence</p>
+                </div>
+                <div class="step-box">
+                    <h4>Step 2: Step out of content</h4>
+                    <p>Stop talking about the topic</p>
+                </div>
+                <div class="step-box">
+                    <h4>Step 3: Decide which condition is at risk</h4>
+                    <p>Mutual Purpose or Mutual Respect?</p>
+                </div>
+                <div class="step-box">
+                    <h4>Step 4: Use the appropriate skill(s)</h4>
+                    <p>Share Intent, Apologize, Contrast, or CRIB</p>
+                </div>
+                <div class="step-box">
+                    <h4>Step 5: Step back into content</h4>
+                    <p>Once safety is restored, continue dialogue</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="90" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-22-heading">
+            <div class="slide-content">
+                <h2 id="slide-22-heading">Practice This Week</h2>
+                <div class="highlight">
+                    <h3>In your next crucial conversation:</h3>
+                    <ul>
+                        <li><strong>Start with good intent:</strong> Share what you want for everyone up front</li>
+                        <li><strong>Watch for safety violations:</strong> Notice when respect or purpose is at risk</li>
+                        <li><strong>Step out when needed:</strong> Stop and rebuild safety before continuing</li>
+                        <li><strong>Use contrasting preventively:</strong> Clarify intent before misunderstandings occur</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="60" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-23-heading">
+            <div class="slide-content">
+                <h2 id="slide-23-heading">This Week's Challenge</h2>
+                <div class="highlight">
+                    <h3>Practice one conversation with these steps:</h3>
+                    <ul>
+                        <li>Plan a crucial conversation you need to have</li>
+                        <li>Write out how you'll <strong>share your good intent</strong> at the start</li>
+                        <li>Prepare a <strong>contrasting statement</strong> to prevent misunderstanding</li>
+                        <li>If you get stuck, use <strong>CRIB</strong> to create mutual purpose</li>
+                    </ul>
+                </div>
+                <p><strong>Next Meeting:</strong> Share what happened when you made it safe</p>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="60" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-24-heading">
+            <div class="slide-content">
+                <h2 id="slide-24-heading">Remember</h2>
+                <div class="two-column">
+                    <div class="highlight">
+                        <h3>Safety ≠ Comfort</h3>
+                        <p>Crucial conversations require stretch and vulnerability. Safety means meaning flows freely, not that everyone feels comfortable.</p>
+                    </div>
+                    <div class="highlight">
+                        <h3>It's About Intent</h3>
+                        <p>People don't become defensive about WHAT you say—they become defensive about WHY they think you're saying it.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-duration="45" tabindex="-1" role="group" aria-roledescription="slide" aria-hidden="true" aria-labelledby="slide-25-heading">
+            <div class="slide-content">
+                <h2 id="slide-25-heading">Key Takeaway</h2>
+                <div class="highlight">
+                    <h3>When it's safe, you can talk about almost anything</h3>
+                    <p style="margin-top: var(--space-md);">Step out of the content when safety is at risk. Rebuild safety using the four skills. Then step back in and continue the dialogue.</p>
+                    <p style="margin-top: var(--space-md);"><em>People never become defensive about what you're saying—only about why they think you're saying it.</em></p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <nav class="navigation" aria-label="Slide navigation controls">
+        <div class="navigation-inner">
+            <button class="auto-advance-toggle" id="autoAdvanceToggle" type="button" aria-pressed="false" aria-label="Toggle automatic slide advancement">
+                <span aria-hidden="true">▶</span> Auto-Advance: OFF
+            </button>
+            <button class="nav-btn" id="previousButton" type="button" aria-label="Go to previous slide">
+                Previous
+            </button>
+            <div class="timer-container" id="timerContainer">
+                <div class="circular-timer">
+                    <svg width="60" height="60" aria-hidden="true">
+                        <circle class="timer-background" cx="30" cy="30" r="26"></circle>
+                        <circle class="timer-progress" id="timerCircle" cx="30" cy="30" r="26" stroke-dasharray="163.36" stroke-dashoffset="0"></circle>
+                    </svg>
+                    <div class="timer-text" id="timerText">0:00</div>
+                </div>
+            </div>
+            <button class="nav-btn" id="nextButton" type="button" aria-label="Go to next slide">
+                Next
+            </button>
+            <button class="help-toggle" id="helpToggle" type="button" aria-haspopup="dialog" aria-expanded="false">
+                Keyboard Shortcuts
+            </button>
+        </div>
+    </nav>
+
+    <section class="shortcut-help" id="shortcutHelp" role="dialog" aria-modal="true" aria-labelledby="shortcutHeading" tabindex="-1" hidden>
+        <div class="shortcut-panel">
+            <h2 id="shortcutHeading">Keyboard Shortcuts</h2>
+            <p>Use these controls to present confidently:</p>
+            <ul>
+                <li><span>Next slide</span> <code>Right Arrow</code></li>
+                <li><span>Previous slide</span> <code>Left Arrow</code></li>
+                <li><span>Toggle auto-advance</span> <code>A</code></li>
+                <li><span>Close this help</span> <code>Esc</code></li>
+            </ul>
+            <button class="help-toggle" id="closeHelp" type="button">Close</button>
+        </div>
+    </section>
+
+    <script>
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const totalSlides = slides.length;
+        const chapterHeader = document.getElementById('chapterHeader');
+        const timerContainer = document.getElementById('timerContainer');
+        const timerCircle = document.getElementById('timerCircle');
+        const timerText = document.getElementById('timerText');
+        const timerAria = document.getElementById('timerAria');
+        const autoAdvanceToggle = document.getElementById('autoAdvanceToggle');
+        const helpToggle = document.getElementById('helpToggle');
+        const shortcutHelp = document.getElementById('shortcutHelp');
+        const closeHelp = document.getElementById('closeHelp');
+        const nextButton = document.getElementById('nextButton');
+        const previousButton = document.getElementById('previousButton');
+        const slideNumberElement = document.getElementById('slideNumber');
+        const totalSlidesElement = document.getElementById('totalSlides');
+
+        let currentSlide = 0;
+        let autoAdvanceEnabled = false;
+        let countdownInterval = null;
+        let remainingTime = 0;
+        let totalDuration = 0;
+        let lastAnnouncement = -1;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const circumference = 163.36;
+
+        totalSlidesElement.textContent = totalSlides;
+
+        slides.forEach((slide, index) => {
+            slide.setAttribute('aria-hidden', 'true');
+            if (!slide.hasAttribute('tabindex')) {
+                slide.setAttribute('tabindex', '-1');
+            }
+            if (!slide.hasAttribute('aria-labelledby')) {
+                const heading = slide.querySelector('h1, h2, h3');
+                if (heading && heading.id) {
+                    slide.setAttribute('aria-labelledby', heading.id);
+                } else if (heading) {
+                    const generatedId = `slide-${index + 1}-heading-generated`;
+                    heading.id = generatedId;
+                    slide.setAttribute('aria-labelledby', generatedId);
+                }
+            }
+        });
+
+        function formatTime(seconds) {
+            const safeSeconds = Math.max(0, Math.floor(seconds));
+            const mins = Math.floor(safeSeconds / 60);
+            const secs = safeSeconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function getSlideDuration(index) {
+            const slide = slides[index];
+            const dataDuration = Number(slide.getAttribute('data-duration'));
+            if (!Number.isNaN(dataDuration) && dataDuration > 0) {
+                return dataDuration;
+            }
+            if (slide.getAttribute('data-type') === 'discussion') {
+                return 300;
+            }
+            return 60;
+        }
+
+        function updateTimerCircle() {
+            if (prefersReducedMotion) {
+                return;
+            }
+            const progress = totalDuration > 0 ? remainingTime / totalDuration : 0;
+            const offset = circumference * (1 - progress);
+            timerCircle.style.strokeDashoffset = offset;
+        }
+
+        function announceTimer(message) {
+            if (timerAria) {
+                timerAria.textContent = message;
+            }
+        }
+
+        function clearCountdownInterval() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+
+        function stopTimer() {
+            clearCountdownInterval();
+            remainingTime = 0;
+            timerText.textContent = '0:00';
+            updateTimerCircle();
+        }
+
+        function startTimer() {
+            clearCountdownInterval();
+            if (!autoAdvanceEnabled) {
+                return;
+            }
+
+            totalDuration = getSlideDuration(currentSlide);
+            remainingTime = totalDuration;
+            lastAnnouncement = -1;
+            timerText.textContent = formatTime(remainingTime);
+            updateTimerCircle();
+
+            countdownInterval = setInterval(() => {
+                remainingTime = Math.max(0, remainingTime - 1);
+                timerText.textContent = formatTime(remainingTime);
+                updateTimerCircle();
+
+                const shouldAnnounce = (remainingTime > 30 && remainingTime % 30 === 0) ||
+                    (remainingTime <= 30 && remainingTime > 0 && remainingTime % 10 === 0) ||
+                    (remainingTime > 0 && remainingTime <= 5);
+
+                if (shouldAnnounce && remainingTime !== lastAnnouncement) {
+                    announceTimer(`${formatTime(remainingTime)} remaining`);
+                    lastAnnouncement = remainingTime;
+                }
+
+                if (remainingTime <= 0) {
+                    clearCountdownInterval();
+                    announceTimer('Moving to next slide');
+                    nextSlide({ initiatedBy: 'timer' });
+                }
+            }, 1000);
+        }
+
+        function toggleAutoAdvance() {
+            autoAdvanceEnabled = !autoAdvanceEnabled;
+
+            if (autoAdvanceEnabled) {
+                autoAdvanceToggle.innerHTML = '<span aria-hidden="true">⏸</span> Auto-Advance: ON';
+                autoAdvanceToggle.setAttribute('aria-pressed', 'true');
+                autoAdvanceToggle.classList.add('active');
+                timerContainer.classList.add('active');
+                announceTimer('Auto-advance enabled');
+                startTimer();
+            } else {
+                autoAdvanceToggle.innerHTML = '<span aria-hidden="true">▶</span> Auto-Advance: OFF';
+                autoAdvanceToggle.setAttribute('aria-pressed', 'false');
+                autoAdvanceToggle.classList.remove('active');
+                timerContainer.classList.remove('active');
+                announceTimer('Auto-advance disabled');
+                clearCountdownInterval();
+            }
+        }
+
+        function handleManualNavigation() {
+            if (!autoAdvanceEnabled) {
+                return;
+            }
+
+            startTimer();
+        }
+
+        function showSlide(index, { initiatedBy = 'manual' } = {}) {
+            slides[currentSlide].setAttribute('aria-hidden', 'true');
+            slides[currentSlide].classList.remove('active', 'with-header');
+
+            currentSlide = (index + totalSlides) % totalSlides;
+            const activeSlide = slides[currentSlide];
+            activeSlide.setAttribute('aria-hidden', 'false');
+            activeSlide.classList.add('active');
+
+            if (currentSlide === 0) {
+                chapterHeader.classList.remove('show');
+                activeSlide.classList.remove('with-header');
+            } else {
+                chapterHeader.classList.add('show');
+                activeSlide.classList.add('with-header');
+            }
+
+            slideNumberElement.textContent = currentSlide + 1;
+
+            activeSlide.focus({ preventScroll: true });
+
+            if (initiatedBy === 'manual') {
+                handleManualNavigation();
+            } else if (autoAdvanceEnabled) {
+                startTimer();
+            }
+        }
+
+        function nextSlide(options = {}) {
+            const { initiatedBy = 'manual' } = options;
+            showSlide(currentSlide + 1, { initiatedBy });
+        }
+
+        function previousSlide(options = {}) {
+            const { initiatedBy = 'manual' } = options;
+            showSlide(currentSlide - 1, { initiatedBy });
+        }
+
+        autoAdvanceToggle.addEventListener('click', toggleAutoAdvance);
+        nextButton.addEventListener('click', () => nextSlide({ initiatedBy: 'manual' }));
+        previousButton.addEventListener('click', () => previousSlide({ initiatedBy: 'manual' }));
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowLeft') {
+                previousSlide({ initiatedBy: 'manual' });
+            } else if (event.key === 'ArrowRight') {
+                nextSlide({ initiatedBy: 'manual' });
+            } else if (event.key === 'a' || event.key === 'A') {
+                toggleAutoAdvance();
+            } else if (event.key === 'Escape' && !shortcutHelp.hasAttribute('hidden')) {
+                closeShortcutHelp();
+            }
+        });
+
+        function openShortcutHelp() {
+            shortcutHelp.removeAttribute('hidden');
+            shortcutHelp.focus();
+            helpToggle.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeShortcutHelp() {
+            shortcutHelp.setAttribute('hidden', '');
+            helpToggle.focus();
+            helpToggle.setAttribute('aria-expanded', 'false');
+        }
+
+        helpToggle.addEventListener('click', () => {
+            if (shortcutHelp.hasAttribute('hidden')) {
+                openShortcutHelp();
+            } else {
+                closeShortcutHelp();
+            }
+        });
+
+        closeHelp.addEventListener('click', closeShortcutHelp);
+
+        shortcutHelp.addEventListener('click', (event) => {
+            if (event.target === shortcutHelp) {
+                closeShortcutHelp();
+            }
+        });
+
+        shortcutHelp.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                event.stopPropagation();
+                closeShortcutHelp();
+            }
+        });
+
+        if (totalSlides > 0) {
+            currentSlide = totalSlides - 1;
+            showSlide(0, { initiatedBy: 'system' });
+        }
+    </script>
+</body>
+</html>
